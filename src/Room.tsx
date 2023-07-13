@@ -1,16 +1,16 @@
 import {
-  GridLayout,
-  LiveKitRoom,
   ParticipantTile,
-  RoomAudioRenderer,
+  LiveKitRoom,
   useRoomContext,
   useTracks,
 } from '@livekit/components-react';
+import type { TrackReference } from '@livekit/components-core';
 import EgressHelper from '@livekit/egress-sdk';
 import { ConnectionState, RoomEvent, Track } from 'livekit-client';
 import { ReactElement, useEffect, useState } from 'react';
 import SingleSpeakerLayout from './SingleSpeakerLayout';
 import SpeakerLayout from './SpeakerLayout';
+import GridLayout from './GridLayout';
 
 interface RoomPageProps {
   url: string;
@@ -39,9 +39,16 @@ function CompositeTemplate({ layout: initialLayout }: CompositeTemplateProps) {
   const room = useRoomContext();
   const [layout, setLayout] = useState(initialLayout);
   const [hasScreenShare, setHasScreenShare] = useState(false);
+  const [displayedTracks, setDisplayedTracks] = useState<TrackReference[]>([]);
   const screenshareTracks = useTracks([Track.Source.ScreenShare], {
     onlySubscribed: true,
   });
+  const allTracks = useTracks(
+    [Track.Source.Camera, Track.Source.ScreenShare, Track.Source.Unknown],
+    {
+      onlySubscribed: true,
+    },
+  );
 
   useEffect(() => {
     if (room) {
@@ -78,17 +85,31 @@ function CompositeTemplate({ layout: initialLayout }: CompositeTemplateProps) {
     }
   }, [screenshareTracks]);
 
-  const allTracks = useTracks(
-    [Track.Source.Camera, Track.Source.ScreenShare, Track.Source.Unknown],
-    {
-      onlySubscribed: true,
-    },
-  );
-  const filteredTracks = allTracks.filter(
-    (tr) =>
-      tr.publication.kind === Track.Kind.Video &&
-      tr.participant.identity !== room.localParticipant.identity,
-  );
+  useEffect(() => {
+    const newTracks: TrackReference[] = [];
+    const participantMap: {[key: string]: TrackReference} = {};
+    allTracks.forEach(tr => {
+      if (tr.participant.identity === room.localParticipant.identity) {
+        return;
+      }
+      if (tr.publication.source === Track.Source.ScreenShare) {
+        newTracks.push(tr);
+        return;
+      }
+      if (!(tr.participant.identity in participantMap)) {
+        participantMap[tr.participant.identity] = tr;
+      } else {
+        if (tr.publication.kind === Track.Kind.Video && tr.publication.trackName === "canvas") {
+          participantMap[tr.participant.identity] = tr;
+        }
+      }
+    });
+
+    for (const identity in participantMap) {
+      newTracks.push(participantMap[identity]);
+    }
+    setDisplayedTracks(newTracks);
+  }, [allTracks, room]);
 
   let interfaceStyle = 'dark';
   if (layout.endsWith('-light')) {
@@ -108,13 +129,13 @@ function CompositeTemplate({ layout: initialLayout }: CompositeTemplateProps) {
   }
   if (room.state !== ConnectionState.Disconnected) {
     if (effectiveLayout.startsWith('speaker')) {
-      main = <SpeakerLayout tracks={filteredTracks} />;
+      main = <SpeakerLayout tracks={displayedTracks} />;
     } else if (effectiveLayout.startsWith('single-speaker')) {
-      main = <SingleSpeakerLayout tracks={filteredTracks} />;
+      main = <SingleSpeakerLayout tracks={displayedTracks} />;
     } else {
       main = (
-        <GridLayout tracks={filteredTracks}>
-          <ParticipantTile />
+        <GridLayout tracks={displayedTracks}>
+          <ParticipantTile disableSpeakingIndicator={true} />
         </GridLayout>
       );
     }
@@ -123,7 +144,6 @@ function CompositeTemplate({ layout: initialLayout }: CompositeTemplateProps) {
   return (
     <div className={containerClass}>
       {main}
-      <RoomAudioRenderer />
     </div>
   );
 }
