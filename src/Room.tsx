@@ -89,6 +89,9 @@ function CompositeTemplate({ layout: initialLayout }: CompositeTemplateProps) {
     const newTracks: TrackReference[] = [];
     const participantMap: {[key: string]: TrackReference} = {};
     allTracks.forEach(tr => {
+      if (tr.publication.isMuted) {
+        return;
+      }
       if (tr.participant.identity === room.localParticipant.identity) {
         return;
       }
