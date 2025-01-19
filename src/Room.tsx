@@ -92,8 +92,8 @@ const ASPECT_RATIO = 16 / 9;
 function CompositeTemplate({ layout: initialLayout }: CompositeTemplateProps) {
   const room = useRoomContext();
   const stageRef = React.useRef<HTMLDivElement>(null);
-  const [stageHeight, setStageHeight] = React.useState<string | number>(0);
-  const [stageWidth, setStageWidth] = React.useState<string | number>(0);
+  const [stageHeight, setStageHeight] = React.useState<string | number>("100%");
+  const [stageWidth, setStageWidth] = React.useState<string | number>("100%");
   const lastAutoFocusedScreenShareTrack = React.useRef<TrackReferenceOrPlaceholder | null>(null);
   const layoutContext = useCreateLayoutContext();
   const allTracks = useTracks(
