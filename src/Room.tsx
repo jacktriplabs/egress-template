@@ -6,7 +6,6 @@ import {
   CarouselLayout,
   FocusLayout,
   FocusLayoutContainer,
-  GridLayout,
   LayoutContextProvider,
   useRoomContext,
   useCreateLayoutContext,
@@ -16,6 +15,7 @@ import {
 import type { TrackReferenceOrPlaceholder } from '@livekit/components-core';
 import { isTrackReference, isEqualTrackRef } from '@livekit/components-core';
 import { ConnectionState, Track } from 'livekit-client';
+import { GridLayout } from './GridLayout';
 
 interface RoomPageProps {
   url: string;
